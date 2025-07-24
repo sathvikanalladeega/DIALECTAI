@@ -1,0 +1,190 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DialectAI</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <!-- <h2>DialectAI - Telugu Dialect Translator</h2> -->
+<h2>Hi, {{ username }}! 👋</h2>
+<a href="/logout" class="btn">Logout</a>
+
+
+    <form id="translateForm">
+      <label>Enter Text or Use Voice:</label><br />
+      <textarea name="input_text" id="inputText" rows="4" cols="50"></textarea
+      ><br /><br />
+
+      <button type="button" id="startBtn">Start Recording</button>
+      <button type="button" id="stopBtn" disabled>Stop Recording</button>
+      <button type="submit">Translate</button>
+      <!-- <h3>📝 Transcribed Text:</h3> -->
+      <!-- <div
+        id="transcribedText"
+        style="border: 1px solid #ccc; padding: 5px"
+      ></div> -->
+
+      <h3>🌍 Detected Dialect:</h3>
+      <div id="dialect" style="border: 1px solid #ccc; padding: 5px"></div>
+
+      <!-- <h3>🗣️ Standard Telugu:</h3> -->
+      <!-- <div
+        id="standardTelugu"
+        style="border: 1px solid #ccc; padding: 5px"
+      ></div> -->
+
+      <h3>🧠 English Translation:</h3>
+      <div id="outputText" style="border: 1px solid #ccc; padding: 5px"></div>
+
+      <br /><br />
+    </form>
+
+    <!-- <h3>Detected Dialect: <span id="dialect"></span></h3>
+    <h3>Translated English: <span id="outputText"></span></h3> -->
+
+    <!-- <script>
+      let mediaRecorder;
+      let audioChunks = [];
+
+      document.getElementById("startBtn").onclick = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          console.log("Microphone access granted");
+
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = (event) => {
+            console.log("Data available");
+            audioChunks.push(event.data);
+          };
+
+          mediaRecorder.onstop = async () => {
+            console.log("Stopped recording, preparing to send...");
+            const blob = new Blob(audioChunks, { type: "audio/wav" });
+            const formData = new FormData();
+            formData.append("audio_data", blob, "recording.wav"); // ✅ correct!
+
+            try {
+              const response = await fetch("/process_audio", {
+                method: "POST",
+                body: formData,
+              });
+
+              if (!response.ok) {
+                throw new Error("Server error: " + response.status);
+              }
+
+              const result = await response.json();
+              console.log("🎉 Full response:", result);
+
+              // Show outputs in corresponding divs
+              document.getElementById("inputText").value =
+                result.transcribed_text || "";
+              document.getElementById("transcribedText").innerText =
+                result.transcribed_text || "N/A";
+              document.getElementById("dialect").innerText =
+                result.dialect || "Unknown";
+              document.getElementById("standardTelugu").innerText =
+                result.standard_telugu || "N/A";
+              document.getElementById("outputText").innerText =
+                result.english_translation || "N/A";
+            } catch (err) {
+              console.error("Error sending audio:", err);
+              alert("❌ Failed to process audio. Please try again.");
+            }
+          };
+
+          mediaRecorder.start();
+          console.log("Recording started...");
+          document.getElementById("startBtn").disabled = true;
+          document.getElementById("stopBtn").disabled = false;
+        } catch (err) {
+          console.error("Microphone access error:", err);
+        }
+      };
+
+      document.getElementById("stopBtn").onclick = () => {
+        mediaRecorder.stop();
+        document.getElementById("startBtn").disabled = false;
+        document.getElementById("stopBtn").disabled = true;
+      };
+
+      document
+        .getElementById("translateForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const inputText = document.getElementById("inputText").value;
+          const response = await fetch("/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ input_text: inputText }),
+          });
+          const result = await response.json();
+          document.getElementById("dialect").innerText = result.dialect;
+          document.getElementById("outputText").innerText =
+            result.english_translation;
+        });
+    </script> -->
+    <script src="/static/recorder.js"></script>
+    <script>
+  let recorder, gumStream;
+
+  document.getElementById("startBtn").onclick = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      gumStream = stream;
+
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const input = audioContext.createMediaStreamSource(stream);
+
+      recorder = new Recorder(input, { numChannels: 1 });
+      recorder.record();
+
+      console.log("🎙️ Recording started...");
+      document.getElementById("startBtn").disabled = true;
+      document.getElementById("stopBtn").disabled = false;
+    } catch (err) {
+      console.error("Microphone error:", err);
+    }
+  };
+
+  document.getElementById("stopBtn").onclick = () => {
+    recorder.stop();
+    gumStream.getAudioTracks()[0].stop();
+    console.log("🛑 Recording stopped");
+
+    recorder.exportWAV(async (blob) => {
+      const formData = new FormData();
+      formData.append("audio_data", blob, "recording.wav");
+
+      try {
+        const response = await fetch("/process_audio", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await response.json();
+        console.log("🎉 Full response:", result);
+
+        document.getElementById("inputText").value = result.transcribed_text || "";
+        document.getElementById("dialect").innerText = result.dialect || "Unknown";
+        document.getElementById("outputText").innerText = result.english_translation || "N/A";
+      } catch (err) {
+        console.error("Error sending audio:", err);
+        alert("❌ Failed to process audio. Please try again.");
+      }
+    });
+
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("stopBtn").disabled = true;
+  };
+</script>
+
+
+
+  </body>
+</html>
